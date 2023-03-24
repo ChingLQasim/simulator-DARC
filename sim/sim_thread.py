@@ -7,7 +7,6 @@ from work_search_state import WorkSearchState
 from tasks import WorkSearchSpin, WorkStealTask, Task, EnqueuePenaltyTask, RequeueTask, ReallocationTask, FlagStealTask, QueueCheckTask, OracleWorkStealTask, IdleTask
 
 
-logging.basicConfig(filename='out.log', level=logging.DEBUG)
 
 
 class Thread:

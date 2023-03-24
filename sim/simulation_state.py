@@ -12,6 +12,21 @@ from sim_thread import Thread
 from sim_queue import Queue
 import progress_bar as progress
 
+type_micro = 100
+type_mini = 500
+type_high = 5000
+
+
+"""定义type level"""
+def def_type(service_time):
+    if service_time <= type_micro:
+        return "micro"
+    if service_time <= type_mini:
+        return "mini"
+    if service_time <= type_high:
+        return "mid"
+    return "high"
+
 
 class SimulationState:
     """Object to maintain simulation state as time passes."""
@@ -375,7 +390,8 @@ class SimulationState:
                 else:
                     service_time = int(random.expovariate(1 / config.AVERAGE_SERVICE_TIME))
 
-            self.tasks.append(Task(service_time, next_task_time, config, self))
+            type_def = def_type(service_time)
+            self.tasks.append(Task(service_time, next_task_time, config, self, type_def))
             if config.regular_arrivals:
                 next_task_time += int(1 / request_rate)
             else:

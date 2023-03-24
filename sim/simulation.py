@@ -22,7 +22,6 @@ RESULTS_DIR = "{}/results/"
 META_LOG_FILE = "{}/results/meta_log"
 CONFIG_LOG_DIR = "{}/config_records/"
 
-logging.basicConfig(filename='outIX.log', level=logging.DEBUG)
 
 
 class Simulation:
@@ -63,12 +62,24 @@ class Simulation:
                 next_arrival, next_alloc = self.find_next_arrival_and_alloc(task_number, allocation_number)
                 time_jump, reschedule_required = self.find_time_jump(next_arrival, next_alloc,
                                                                      immediate_reschedule=reschedule_required)
-
-            logging.debug("\n(jump: {}, rr: {})".format(time_jump, reschedule_required))
+                logging.debug("\n(jump: {}, rr: {})".format(time_jump, reschedule_required))
 
             # Put new task arrivals in queues
             while task_number < self.state.tasks_scheduled and \
                     self.state.tasks[task_number].arrival_time <= self.state.timer.get_time():
+
+                if self.state.tasks[task_number].type == "micro":
+                    chosen_queue = 3
+                    self.state.queues[3].enqueue(self.state.tasks[task_number], set_original=True)
+                elif self.state.tasks[task_number].type == "mini":
+                    chosen_queue = 0
+                    self.state.queues[0].enqueue(self.state.tasks[task_number], set_original=True)
+                elif self.state.tasks[task_number].type == "mid":
+                    chosen_queue = 1
+                    self.state.queues[1].enqueue(self.state.tasks[task_number], set_original=True)
+                elif self.state.tasks[task_number].type == "high":
+                    chosen_queue = 2
+                    self.state.queues[2].enqueue(self.state.tasks[task_number], set_original=True)
 
                 if self.config.join_bounded_shortest_queue:
                     chosen_queue = self.state.main_queue
@@ -484,8 +495,8 @@ class Simulation:
 
 if __name__ == "__main__":
 
-    run_name = SINGLE_THREAD_SIM_NAME_FORMAT.format("WS",
-                                                    datetime.datetime.now().strftime("%H:%M"))
+    run_name = SINGLE_THREAD_SIM_NAME_FORMAT.format("DRAC",
+                                                    datetime.datetime.now().strftime("%d_%H-%M-%S"))
     path_to_sim = os.path.relpath(pathlib.Path(__file__).resolve().parents[1], start=os.curdir)
 
     if os.path.isfile(sys.argv[1]):

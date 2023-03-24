@@ -12,7 +12,7 @@ logging.basicConfig(filename='out.log', level=logging.DEBUG)
 class Task:
     """Task to be completed by a thread."""
 
-    def __init__(self, time, arrival_time, config, state):
+    def __init__(self, time, arrival_time, config, state, type_def):
         self.source_core = None
         self.service_time = time
         self.time_left = time
@@ -42,6 +42,7 @@ class Task:
         self.config = config
         self.state = state
         self.preempted_sjk = False
+        self.type = type_def
 
     def expected_completion_time(self):
         """Return predicted completion time based on time left."""
@@ -59,7 +60,7 @@ class Task:
 
         # Any processing that must be done with the decremented timer but before the time left is checked
         # self.process_logic(False)
-        self.process_logic(sjk=True)
+        self.process_logic()
 
         # If no more time left and stop condition is met, complete the task
         if self.time_left <= 0 and (stop_condition is None or stop_condition()):
@@ -134,7 +135,7 @@ class AbstractWorkStealTask(Task):
     """Class to implement common functionality between different forms of work stealing tasks."""
 
     def __init__(self, thread, initial_time, config, state):
-        super().__init__(initial_time, state.timer.get_time(), config, state)
+        super().__init__(initial_time, state.timer.get_time(), config, state, type_def="micro")
         self.thread = thread
         self.work_found = False
         self.checked_all = False
@@ -246,7 +247,7 @@ class WorkSearchSpin(Task): # TODO: Check the preemption for double-counting
     """Task to spin a thread (not idle, but preemptable) if there is nothing else to do."""
 
     def __init__(self, thread, config, state):
-        super().__init__(config.MINIMUM_WORK_SEARCH_TIME, state.timer.get_time(), config, state)
+        super().__init__(config.MINIMUM_WORK_SEARCH_TIME, state.timer.get_time(), config, state, type_def="micro")
         self.is_productive = False
         self.thread = thread
         self.preempted = False
@@ -440,7 +441,7 @@ class QueueCheckTask(Task):
     """Task to check the local queue of a thread."""
 
     def __init__(self, thread, config, state, return_to_ws_task=None):
-        super().__init__(config.LOCAL_QUEUE_CHECK_TIME, state.timer.get_time(), config, state)
+        super().__init__(config.LOCAL_QUEUE_CHECK_TIME, state.timer.get_time(), config, state, type_def="micro")
         self.thread = thread
         self.locked_out = not self.thread.queue.try_get_lock(self.thread.id)
         self.is_productive = False
