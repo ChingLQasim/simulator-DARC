@@ -22,7 +22,7 @@ RESULTS_DIR = "{}/results/"
 META_LOG_FILE = "{}/results/meta_log"
 CONFIG_LOG_DIR = "{}/config_records/"
 
-
+logging.basicConfig(filename='out-drac.log', level=logging.DEBUG)
 
 class Simulation:
     """Runs the simulation based on the simulation state."""
@@ -99,9 +99,9 @@ class Simulation:
                         self.state.tasks[task_number].to_enqueue = chosen_queue
                     self.state.queues[source_core].enqueue(self.state.tasks[task_number], set_original=True)
 
-                else:
-                    chosen_queue = random.choice(self.state.available_queues)
-                    self.state.queues[chosen_queue].enqueue(self.state.tasks[task_number], set_original=True)
+                # else:
+                #     chosen_queue = random.choice(self.state.available_queues)
+                #     self.state.queues[chosen_queue].enqueue(self.state.tasks[task_number], set_original=True)
 
                 if self.config.fred_reallocation and \
                         self.state.threads[self.state.queues[chosen_queue].get_core()].is_busy():
