@@ -78,6 +78,11 @@ class Simulation:
         long_original_cores = 4
         # 预留核心，预留一个
         short_remain_cores = 1
+        normal_state = "normal"
+        short_burst = "short_burst"
+        short_increase = "short_increase"
+        long_burst = "long_burst"
+        current_alloc_state = normal_state
         # Run for acceptable time or until all tasks are done
         while self.state.any_incomplete() and \
                 (self.config.sim_duration is None or self.state.timer.get_time() < self.config.sim_duration):
@@ -94,7 +99,6 @@ class Simulation:
             # Put new task arrivals in queues
             while task_number < self.state.tasks_scheduled and \
                     self.state.tasks[task_number].arrival_time <= self.state.timer.get_time():
-
                 """
                 预分配核心，重置核心分配
                 """
@@ -110,12 +114,14 @@ class Simulation:
                 long_reserved_cores = len(self.state.queues[long_queue_number].thread_ids)
                 if short_task / short_reserved_cores > 1:
                     if short_reserved_cores < (short_original_cores + short_remain_cores):
-                        # 一般预留最后一个核心， 所以这里采用核心数 - 1即可知道工作线程id
-                        self.state.queues[short_queue_number].thread_ids.append(self.config.num_threads - 1)
-                        for thread in self.state.threads:
-                            if thread.id == self.config.num_threads - 1:
-                                thread.set_given_que(self.state.queues[short_queue_number])
-                    if short_task / short_reserved_cores > 2:
+                        if current_alloc_state != short_increase:
+                            # 一般预留最后一个核心， 所以这里采用核心数 - 1即可知道工作线程id
+                            self.state.queues[short_queue_number].thread_ids.append(self.config.num_threads - 1)
+                            for thread in self.state.threads:
+                                if thread.id == self.config.num_threads - 1:
+                                    thread.set_given_que(self.state.queues[short_queue_number])
+                            current_alloc_state = short_increase
+                    if short_task / short_reserved_cores > 2 and current_alloc_state != short_burst:
                         self.state.queues[short_queue_number].thread_ids = m_extreme
                         self.state.queues[long_queue_number].thread_ids = a_mini
                         for thread in self.state.threads:
@@ -125,26 +131,31 @@ class Simulation:
                                 thread.set_given_que(self.state.queues[long_queue_number])
                             else:
                                 thread.set_given_que(self.state.queues[short_queue_number])
-                elif long_task / long_reserved_cores > 10:
-                    self.state.queues[short_queue_number].thread_ids = m_mini
-                    self.state.queues[long_queue_number].thread_ids = a_extreme
-                    for thread in self.state.threads:
-                        if thread.id in m_mini:
-                            thread.set_given_que(self.state.queues[short_queue_number])
-                        elif thread.id in a_extreme:
-                            thread.set_given_que(self.state.queues[long_queue_number])
-                        else:
-                            thread.set_given_que(self.state.queues[short_queue_number])
+                        current_alloc_state = short_burst
+                elif long_task / long_reserved_cores > 9:
+                    if current_alloc_state != long_burst:
+                        self.state.queues[short_queue_number].thread_ids = m_mini
+                        self.state.queues[long_queue_number].thread_ids = a_extreme
+                        for thread in self.state.threads:
+                            if thread.id in m_mini:
+                                thread.set_given_que(self.state.queues[short_queue_number])
+                            elif thread.id in a_extreme:
+                                thread.set_given_que(self.state.queues[long_queue_number])
+                            else:
+                                thread.set_given_que(self.state.queues[short_queue_number])
+                        current_alloc_state = long_burst
                 else:
-                    self.state.queues[short_queue_number].thread_ids = m_normal
-                    self.state.queues[long_queue_number].thread_ids = a_normal
-                    for thread in self.state.threads:
-                        if thread.id in m_normal:
-                            thread.set_given_que(self.state.queues[short_queue_number])
-                        elif thread.id in a_normal:
-                            thread.set_given_que(self.state.queues[long_queue_number])
-                        else:
-                            thread.set_given_que(self.state.queues[short_queue_number])
+                    if current_alloc_state != normal_state:
+                        self.state.queues[short_queue_number].thread_ids = m_normal
+                        self.state.queues[long_queue_number].thread_ids = a_normal
+                        for thread in self.state.threads:
+                            if thread.id in m_normal:
+                                thread.set_given_que(self.state.queues[short_queue_number])
+                            elif thread.id in a_normal:
+                                thread.set_given_que(self.state.queues[long_queue_number])
+                            else:
+                                thread.set_given_que(self.state.queues[short_queue_number])
+                        current_alloc_state = normal_state
 
                 """
                 任务分类分流
@@ -580,8 +591,9 @@ if __name__ == "__main__":
         logging.basicConfig(level=logging.DEBUG, filename="DRAC.log")
         sys.argv.remove("-d")
 
-    run_name = SINGLE_THREAD_SIM_NAME_FORMAT.format("DRAC",
+    run_name = SINGLE_THREAD_SIM_NAME_FORMAT.format("DARC",
                                                     sys.argv[2])
+
     path_to_sim = os.path.relpath(pathlib.Path(__file__).resolve().parents[1], start=os.curdir)
 
     if os.path.isfile(sys.argv[1]):

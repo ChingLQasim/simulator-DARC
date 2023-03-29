@@ -6,7 +6,7 @@ import random
 import logging
 from work_search_state import WorkSearchState
 
-logging.basicConfig(filename='out.log', level=logging.DEBUG)
+# logging.basicConfig(filename='out.log', level=logging.DEBUG)
 
 
 class Task:
