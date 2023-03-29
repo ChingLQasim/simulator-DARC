@@ -379,6 +379,24 @@ class SimulationState:
         if config.bimodal_service_time:
             distribution = [500] * 9 + [5500]
         i = 0
+        # if config.bimodal_service_time:
+        #     data_path = "bimodal-10000000ns.txt"
+        # else:
+        #     data_path = "Exponential-10000000ns.txt"
+        # with open(data_path, "r") as file:
+        #     content = file.readlines()
+        # task_list = []
+        # for line in content:
+        #     sublist = eval(line.strip())
+        #     task_list.append(sublist)
+        #
+        # length = len(task_list)
+        # while i < length:
+        #     type_def = def_type(task_list[i][0])
+        #     self.tasks.append(Task(task_list[i][0], task_list[i][1], config, self, type_def))
+        #     if config.progress_bar and i % length == 0:
+        #         progress.print_progress(task_list[i][0], task_list[i][1], decimals=3, length=50)
+        #     i += 1
         while (config.sim_duration is None or next_task_time < config.sim_duration) and \
                 (config.num_tasks is None or i < config.num_tasks):
             service_time = None

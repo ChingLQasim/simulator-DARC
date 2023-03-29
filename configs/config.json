@@ -1,9 +1,9 @@
 {
  "avg_system_load": 1,
- "num_queues": 4,
+ "num_queues": 2,
  "num_threads": 9,
  "mapping": [
- 0,0,0,1,1,1,2,2,3
+ 0,0,0,0,1,1,1,1,0
 ],
  "load_thread_count": 9,
  "num_tasks": null,

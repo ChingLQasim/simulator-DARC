@@ -66,6 +66,9 @@ class Thread:
         self.config = config
         self.state = state
 
+    def set_given_que(self, queue):
+        self.queue = queue
+
     def total_time(self):
         """Return total time spent on tasks, distracted, unpaired, and paired."""
         return self.distracted_time + self.task_time + self.unpaired_time + self.paired_time

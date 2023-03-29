@@ -218,7 +218,7 @@ class ReallocationTask(Task):
     """Task to delay allocation."""
 
     def __init__(self, thread, config, state):
-        super().__init__(config.ALLOCATION_TIME, state.timer.get_time(), config, state)
+        super().__init__(config.ALLOCATION_TIME, state.timer.get_time(), config, state, type_def="micro")
         self.is_productive = False
         self.thread = thread
 

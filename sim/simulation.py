@@ -22,7 +22,7 @@ RESULTS_DIR = "{}/results/"
 META_LOG_FILE = "{}/results/meta_log"
 CONFIG_LOG_DIR = "{}/config_records/"
 
-logging.basicConfig(filename='out-drac.log', level=logging.DEBUG)
+# logging.basicConfig(filename='out-drac.log', level=logging.DEBUG)
 
 class Simulation:
     """Runs the simulation based on the simulation state."""
@@ -53,6 +53,31 @@ class Simulation:
         if self.config.progress_bar:
             print("\nSimulation started")
 
+        # 短请求队列号
+        short_queue_number = 0
+        # 长请求队列号
+        long_queue_number = 1
+        # 短请求爆发， 短请求预留核心
+        m_extreme = [0, 1, 2, 3, 4, 5, 6, 8]
+        # 长请求爆发， 短请求预留核心
+        m_mini = [0, 1]
+        m_burst = [0, 1, 2, 3, 8]
+        # 短请求预制预留核心
+        m_normal = [0, 1, 2, 3]
+        # 长请求预制预留核心
+        a_normal = [4, 5, 6, 7]
+        # 长请求爆发， 长请求预留核心
+        a_extreme = [2, 3, 4, 5, 6, 7]
+        # 短请求爆发， 长请求预留核心
+        a_mini = [7]
+        # 短请求服务时间设置
+        micro_task_time = 500
+        # 短请求核心个数
+        short_original_cores = 4
+        # 长请求核心个数
+        long_original_cores = 4
+        # 预留核心，预留一个
+        short_remain_cores = 1
         # Run for acceptable time or until all tasks are done
         while self.state.any_incomplete() and \
                 (self.config.sim_duration is None or self.state.timer.get_time() < self.config.sim_duration):
@@ -63,11 +88,67 @@ class Simulation:
                 time_jump, reschedule_required = self.find_time_jump(next_arrival, next_alloc,
                                                                      immediate_reschedule=reschedule_required)
                 logging.debug("\n(jump: {}, rr: {})".format(time_jump, reschedule_required))
-
+            task_distribute = [0, 0]
+            task_distribute[0] = len(self.state.queues[0].queue)
+            task_distribute[1] = len(self.state.queues[1].queue)
             # Put new task arrivals in queues
             while task_number < self.state.tasks_scheduled and \
                     self.state.tasks[task_number].arrival_time <= self.state.timer.get_time():
 
+                """
+                预分配核心，重置核心分配
+                """
+                if self.state.tasks[task_number].service_time <= micro_task_time:
+                    task_distribute[0] = task_distribute[0] + 1
+                else:
+                    task_distribute[1] = task_distribute[1] + 1
+                short_task = task_distribute[0]
+                long_task = task_distribute[1]
+                # 短请求当前队列长度
+                short_reserved_cores = len(self.state.queues[short_queue_number].thread_ids)
+                # 长请求当前队列长度
+                long_reserved_cores = len(self.state.queues[long_queue_number].thread_ids)
+                if short_task / short_reserved_cores > 1:
+                    if short_reserved_cores < (short_original_cores + short_remain_cores):
+                        # 一般预留最后一个核心， 所以这里采用核心数 - 1即可知道工作线程id
+                        self.state.queues[short_queue_number].thread_ids.append(self.config.num_threads - 1)
+                        for thread in self.state.threads:
+                            if thread.id == self.config.num_threads - 1:
+                                thread.set_given_que(self.state.queues[short_queue_number])
+                    if short_task / short_reserved_cores > 2:
+                        self.state.queues[short_queue_number].thread_ids = m_extreme
+                        self.state.queues[long_queue_number].thread_ids = a_mini
+                        for thread in self.state.threads:
+                            if thread.id in m_extreme:
+                                thread.set_given_que(self.state.queues[short_queue_number])
+                            elif thread.id in a_mini:
+                                thread.set_given_que(self.state.queues[long_queue_number])
+                            else:
+                                thread.set_given_que(self.state.queues[short_queue_number])
+                elif long_task / long_reserved_cores > 10:
+                    self.state.queues[short_queue_number].thread_ids = m_mini
+                    self.state.queues[long_queue_number].thread_ids = a_extreme
+                    for thread in self.state.threads:
+                        if thread.id in m_mini:
+                            thread.set_given_que(self.state.queues[short_queue_number])
+                        elif thread.id in a_extreme:
+                            thread.set_given_que(self.state.queues[long_queue_number])
+                        else:
+                            thread.set_given_que(self.state.queues[short_queue_number])
+                else:
+                    self.state.queues[short_queue_number].thread_ids = m_normal
+                    self.state.queues[long_queue_number].thread_ids = a_normal
+                    for thread in self.state.threads:
+                        if thread.id in m_normal:
+                            thread.set_given_que(self.state.queues[short_queue_number])
+                        elif thread.id in a_normal:
+                            thread.set_given_que(self.state.queues[long_queue_number])
+                        else:
+                            thread.set_given_que(self.state.queues[short_queue_number])
+
+                """
+                任务分类分流
+                """
                 if self.state.tasks[task_number].type == "micro":
                     chosen_queue = 3
                     self.state.queues[3].enqueue(self.state.tasks[task_number], set_original=True)
@@ -75,11 +156,11 @@ class Simulation:
                     chosen_queue = 0
                     self.state.queues[0].enqueue(self.state.tasks[task_number], set_original=True)
                 elif self.state.tasks[task_number].type == "mid":
-                    chosen_queue = 1
-                    self.state.queues[1].enqueue(self.state.tasks[task_number], set_original=True)
-                elif self.state.tasks[task_number].type == "high":
                     chosen_queue = 2
                     self.state.queues[2].enqueue(self.state.tasks[task_number], set_original=True)
+                elif self.state.tasks[task_number].type == "high":
+                    chosen_queue = 1
+                    self.state.queues[1].enqueue(self.state.tasks[task_number], set_original=True)
 
                 if self.config.join_bounded_shortest_queue:
                     chosen_queue = self.state.main_queue
@@ -495,8 +576,12 @@ class Simulation:
 
 if __name__ == "__main__":
 
+    if "-d" in sys.argv:
+        logging.basicConfig(level=logging.DEBUG, filename="DRAC.log")
+        sys.argv.remove("-d")
+
     run_name = SINGLE_THREAD_SIM_NAME_FORMAT.format("DRAC",
-                                                    datetime.datetime.now().strftime("%d_%H-%M-%S"))
+                                                    sys.argv[2])
     path_to_sim = os.path.relpath(pathlib.Path(__file__).resolve().parents[1], start=os.curdir)
 
     if os.path.isfile(sys.argv[1]):
@@ -505,11 +590,6 @@ if __name__ == "__main__":
         cfg.name = run_name
         cfg_json.close()
 
-
-
-        if "-d" in sys.argv:
-            logging.basicConfig(level=logging.DEBUG, format='%(levelname)s:%(message)s')
-            sys.argv.remove("-d")
 
         if len(sys.argv) > 2:
             if not os.path.isdir(RESULTS_DIR.format(path_to_sim)):
