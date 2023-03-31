@@ -112,7 +112,7 @@ class Simulation:
                 short_reserved_cores = len(self.state.queues[short_queue_number].thread_ids)
                 # 长请求当前队列长度
                 long_reserved_cores = len(self.state.queues[long_queue_number].thread_ids)
-                if short_task / short_reserved_cores > 1:
+                if short_task / short_reserved_cores > 1 and long_task / long_reserved_cores < 20:
                     if short_reserved_cores < (short_original_cores + short_remain_cores):
                         if current_alloc_state != short_increase:
                             # 一般预留最后一个核心， 所以这里采用核心数 - 1即可知道工作线程id
@@ -132,7 +132,7 @@ class Simulation:
                             else:
                                 thread.set_given_que(self.state.queues[short_queue_number])
                         current_alloc_state = short_burst
-                elif long_task / long_reserved_cores > 9:
+                elif long_task / long_reserved_cores > 10:
                     if current_alloc_state != long_burst:
                         self.state.queues[short_queue_number].thread_ids = m_mini
                         self.state.queues[long_queue_number].thread_ids = a_extreme

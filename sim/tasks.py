@@ -508,11 +508,13 @@ class WorkStealTask(AbstractWorkStealTask):
     def __init__(self, thread, config, state):
         super().__init__(thread, None, config, state)
         self.state.work_steal_tasks += 1
-        self.original_search_index = self.choose_first_queue() if self.config.two_choices else int(random.uniform(0, self.config.num_queues))
+        # self.original_search_index = self.choose_first_queue() if self.config.two_choices else int(random.uniform(0, self.config.num_queues))
+        self.original_search_index = 0
         self.search_index = self.original_search_index
         self.local_check_timer = self.config.LOCAL_QUEUE_CHECK_TIMER if self.config.ws_self_checks else None
         self.to_search = list(self.config.WS_PERMUTATION)
         self.candidate_remote = None
+        self.current_type_level = thread.queue.id
 
         # To initialize times and candidate remote, check first thread
         self.first_search()
@@ -545,7 +547,7 @@ class WorkStealTask(AbstractWorkStealTask):
             return self.state.timer.get_time() + self.time_left
 
     def first_search(self):
-        """Start the task by checking the sibling thread for work."""
+        """搜寻兄弟工作线程寻找可以窃取的任务"""
         if self.config.random_work_steal_search:
             self.work_search_walk_random()
         elif self.config.ws_sibling_first and self.thread.queue.id != self.thread.sibling.queue.id:
@@ -656,26 +658,28 @@ class WorkStealTask(AbstractWorkStealTask):
             self.start_work_steal_check(remote)
 
     def work_search_walk(self):
-        """Iterate through queues to try to find work to steal."""
+        """遍历队列寻找能够窃取的任务"""
+        self.start_work_steal_check(self.state.queues[self.search_index])
         # Select a random thread to steal from then walk through all
-        self.search_index += 1
-        self.search_index %= self.config.num_queues
-
-        # If back at original index, completed search
-        if self.search_index == self.original_search_index:
-            self.checked_all = True
-
-        # Use permutation of queues to ensure that allocation policy is not causing clustering in search
-        remote = self.state.queues[self.config.WS_PERMUTATION[self.search_index]]
-
-        # Skip over ones that were already checked
-        if remote.id == self.thread.queue.id or (self.config.ws_sibling_first and self.thread.sibling is not None and
-                                                 remote.id == self.thread.sibling.queue.id):
-            self.work_search_walk()
-
-        # Otherwise, begin to check if you can steal from it
-        else:
-            self.start_work_steal_check(remote)
+        # self.search_index += 1
+        # self.search_index %= self.config.num_queues
+        #
+        # # If back at original index, completed search
+        # if self.search_index == self.original_search_index:
+        #     self.checked_all = True
+        #
+        # # 使用队列的排列方式来确保分配策略不会导致搜索中出现聚集现象
+        # remote = self.state.queues[self.config.WS_PERMUTATION[self.search_index]]
+        #
+        # # 跳过已经检查过的内容，并且不允许分配给短请求的核心去窃取长请求任务
+        # if remote.id == self.thread.queue.id or remote.id > self.thread.queue.id or \
+        #         (self.config.ws_sibling_first and self.thread.sibling is not None
+        #          and remote.id == self.thread.sibling.queue.id):
+        #     self.work_search_walk()
+        #
+        # # 检查是否能够窃取核心
+        # else:
+        #     self.start_work_steal_check(remote)
 
     def start_work_steal_check(self, remote):
         """Add to service time the amount required to check another queue and set it as the remote candidate."""

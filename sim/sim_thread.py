@@ -66,6 +66,9 @@ class Thread:
         self.config = config
         self.state = state
 
+        # 目前分配的任务类型 0 | 1
+        self.type = 0
+
     def set_given_que(self, queue):
         self.queue = queue
 
