@@ -98,7 +98,7 @@ def analyze_sim_run(run_name, output_file, print_results=False, time_dropped=0):
         if int(data[0]) > time_dropped * stats["End Time"] and int(data[1]) >= 0:
             total_tasks += 1
             task_latencies.append(int(data[1]))
-            total_queueing_time += (int(data[1])) - int(data[2])
+            total_queueing_time += (float(data[1])) - float(data[2])
             total_requeue_wait_time += int(data[9])
             steals = int(data[3])
             flag_steals = int(data[10]) if len(data) > 10 else 0

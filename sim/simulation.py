@@ -112,66 +112,19 @@ class Simulation:
                 short_reserved_cores = len(self.state.queues[short_queue_number].thread_ids)
                 # 长请求当前队列长度
                 long_reserved_cores = len(self.state.queues[long_queue_number].thread_ids)
-                if short_task / short_reserved_cores > 1 and long_task / long_reserved_cores < 20:
-                    if short_reserved_cores < (short_original_cores + short_remain_cores):
-                        if current_alloc_state != short_increase:
-                            # 一般预留最后一个核心， 所以这里采用核心数 - 1即可知道工作线程id
-                            self.state.queues[short_queue_number].thread_ids.append(self.config.num_threads - 1)
-                            for thread in self.state.threads:
-                                if thread.id == self.config.num_threads - 1:
-                                    thread.set_given_que(self.state.queues[short_queue_number])
-                            current_alloc_state = short_increase
-                    if short_task / short_reserved_cores > 2 and current_alloc_state != short_burst:
-                        self.state.queues[short_queue_number].thread_ids = m_extreme
-                        self.state.queues[long_queue_number].thread_ids = a_mini
-                        for thread in self.state.threads:
-                            if thread.id in m_extreme:
-                                thread.set_given_que(self.state.queues[short_queue_number])
-                            elif thread.id in a_mini:
-                                thread.set_given_que(self.state.queues[long_queue_number])
-                            else:
-                                thread.set_given_que(self.state.queues[short_queue_number])
-                        current_alloc_state = short_burst
-                elif long_task / long_reserved_cores > 10:
-                    if current_alloc_state != long_burst:
-                        self.state.queues[short_queue_number].thread_ids = m_mini
-                        self.state.queues[long_queue_number].thread_ids = a_extreme
-                        for thread in self.state.threads:
-                            if thread.id in m_mini:
-                                thread.set_given_que(self.state.queues[short_queue_number])
-                            elif thread.id in a_extreme:
-                                thread.set_given_que(self.state.queues[long_queue_number])
-                            else:
-                                thread.set_given_que(self.state.queues[short_queue_number])
-                        current_alloc_state = long_burst
-                else:
-                    if current_alloc_state != normal_state:
-                        self.state.queues[short_queue_number].thread_ids = m_normal
-                        self.state.queues[long_queue_number].thread_ids = a_normal
-                        for thread in self.state.threads:
-                            if thread.id in m_normal:
-                                thread.set_given_que(self.state.queues[short_queue_number])
-                            elif thread.id in a_normal:
-                                thread.set_given_que(self.state.queues[long_queue_number])
-                            else:
-                                thread.set_given_que(self.state.queues[short_queue_number])
-                        current_alloc_state = normal_state
 
                 """
                 任务分类分流
                 """
-                if self.state.tasks[task_number].type == "micro":
-                    chosen_queue = 3
-                    self.state.queues[3].enqueue(self.state.tasks[task_number], set_original=True)
-                elif self.state.tasks[task_number].type == "mini":
+                if self.state.tasks[task_number].type == "mini":
                     chosen_queue = 0
                     self.state.queues[0].enqueue(self.state.tasks[task_number], set_original=True)
                 elif self.state.tasks[task_number].type == "mid":
-                    chosen_queue = 2
-                    self.state.queues[2].enqueue(self.state.tasks[task_number], set_original=True)
-                elif self.state.tasks[task_number].type == "high":
                     chosen_queue = 1
                     self.state.queues[1].enqueue(self.state.tasks[task_number], set_original=True)
+                elif self.state.tasks[task_number].type == "high":
+                    chosen_queue = 2
+                    self.state.queues[2].enqueue(self.state.tasks[task_number], set_original=True)
 
                 if self.config.join_bounded_shortest_queue:
                     chosen_queue = self.state.main_queue

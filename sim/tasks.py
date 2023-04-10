@@ -56,6 +56,7 @@ class Task:
         """
         if self.time_left == self.service_time:
             self.start_time = self.state.timer.get_time()
+        print(self)
         self.time_left -= time_increment
 
         # Any processing that must be done with the decremented timer but before the time left is checked
@@ -183,7 +184,7 @@ class AbstractWorkStealTask(Task):
 
         # If there is no work to steal
         if not remote.work_available():
-            # logging.debug("Thread {} has nothing to steal from queue {}".format(self.thread.id, remote.id))
+            logging.debug("Thread {} has nothing to steal from queue {}".format(self.thread.id, remote.id))
             return False
 
         # If the remote lock cannot be acquired
@@ -509,12 +510,13 @@ class WorkStealTask(AbstractWorkStealTask):
         super().__init__(thread, None, config, state)
         self.state.work_steal_tasks += 1
         # self.original_search_index = self.choose_first_queue() if self.config.two_choices else int(random.uniform(0, self.config.num_queues))
-        self.original_search_index = 0
+        self.current_type_level = thread.queue.id
+        self.original_search_index = self.current_type_level
         self.search_index = self.original_search_index
         self.local_check_timer = self.config.LOCAL_QUEUE_CHECK_TIMER if self.config.ws_self_checks else None
         self.to_search = list(self.config.WS_PERMUTATION)
         self.candidate_remote = None
-        self.current_type_level = thread.queue.id
+
 
         # To initialize times and candidate remote, check first thread
         self.first_search()
@@ -659,7 +661,12 @@ class WorkStealTask(AbstractWorkStealTask):
 
     def work_search_walk(self):
         """遍历队列寻找能够窃取的任务"""
-        self.start_work_steal_check(self.state.queues[self.search_index])
+        if 0 <= self.search_index < self.original_search_index:
+            self.start_work_steal_check(self.state.queues[self.search_index])
+        else:
+            if self.search_index - 1 >= 0:
+                self.search_index -= 1
+                self.work_search_walk()
         # Select a random thread to steal from then walk through all
         # self.search_index += 1
         # self.search_index %= self.config.num_queues

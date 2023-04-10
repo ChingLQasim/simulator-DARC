@@ -13,14 +13,12 @@ from sim_queue import Queue
 import progress_bar as progress
 
 type_micro = 100
-type_mini = 500
+type_mini = 1000
 type_high = 5000
 
 
 """定义type level"""
 def def_type(service_time):
-    if service_time <= type_micro:
-        return "micro"
     if service_time <= type_mini:
         return "mini"
     if service_time <= type_high:
@@ -379,6 +377,7 @@ class SimulationState:
         if config.bimodal_service_time:
             distribution = [500] * 9 + [5500]
         i = 0
+        #############################################################################
         # if config.bimodal_service_time:
         #     data_path = "bimodal-10000000ns.txt"
         # else:
@@ -397,6 +396,7 @@ class SimulationState:
         #     if config.progress_bar and i % length == 0:
         #         progress.print_progress(task_list[i][0], task_list[i][1], decimals=3, length=50)
         #     i += 1
+        ##############################################################################
         while (config.sim_duration is None or next_task_time < config.sim_duration) and \
                 (config.num_tasks is None or i < config.num_tasks):
             service_time = None
@@ -406,7 +406,7 @@ class SimulationState:
                 elif config.bimodal_service_time:
                     service_time = random.choice(distribution)
                 else:
-                    service_time = int(random.expovariate(1 / config.AVERAGE_SERVICE_TIME))
+                    service_time = min(max(random.expovariate(1 / config.AVERAGE_SERVICE_TIME), 100), 10000)
 
             type_def = def_type(service_time)
             self.tasks.append(Task(service_time, next_task_time, config, self, type_def))

@@ -5,14 +5,14 @@ echo "切换到目录sim... $(pwd)"
 config_path="configs/config.json"
 config="../${config_path}"
 echo "移除log文件..."
-if [ -f out.log ]; then
-  rm out.log
+if [ -f DRAC.log ]; then
+  rm DRAC.log
 fi
 time_format=$(date +"%d_%H-%M-%S")
 echo "当前时间： $time_format"
 start_time=$(date +%s)
 echo "模拟开始"
-python3 simulation.py "$config" "$time_format"
+python3 simulation.py "$config" -d "$time_format"
 end_time=$(date +%s)
 
 echo "当前时间: $(date +"%H:%M:%S") 总共用时： $(( end_time - start_time )) 秒, 约 $(( (end_time - start_time) / 60 )) 分"
