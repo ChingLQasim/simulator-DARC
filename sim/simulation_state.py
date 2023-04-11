@@ -406,7 +406,7 @@ class SimulationState:
                 elif config.bimodal_service_time:
                     service_time = random.choice(distribution)
                 else:
-                    service_time = min(max(random.expovariate(1 / config.AVERAGE_SERVICE_TIME), 100), 10000)
+                    service_time = int(min(max(random.expovariate(1 / config.AVERAGE_SERVICE_TIME), 100), 10000))
 
             type_def = def_type(service_time)
             self.tasks.append(Task(service_time, next_task_time, config, self, type_def))

@@ -56,7 +56,7 @@ class Task:
         """
         if self.time_left == self.service_time:
             self.start_time = self.state.timer.get_time()
-        print(self)
+        # print(self)
         self.time_left -= time_increment
 
         # Any processing that must be done with the decremented timer but before the time left is checked
@@ -509,10 +509,12 @@ class WorkStealTask(AbstractWorkStealTask):
     def __init__(self, thread, config, state):
         super().__init__(thread, None, config, state)
         self.state.work_steal_tasks += 1
-        # self.original_search_index = self.choose_first_queue() if self.config.two_choices else int(random.uniform(0, self.config.num_queues))
-        self.current_type_level = thread.queue.id
-        self.original_search_index = self.current_type_level
+        self.original_search_index = self.choose_first_queue() if self.config.two_choices else int(
+            random.uniform(0, self.config.num_queues))
         self.search_index = self.original_search_index
+        # self.current_type_level = thread.queue.id
+        # self.original_search_index = self.current_type_level
+        # self.search_index = self.original_search_index
         self.local_check_timer = self.config.LOCAL_QUEUE_CHECK_TIMER if self.config.ws_self_checks else None
         self.to_search = list(self.config.WS_PERMUTATION)
         self.candidate_remote = None
@@ -660,36 +662,36 @@ class WorkStealTask(AbstractWorkStealTask):
             self.start_work_steal_check(remote)
 
     def work_search_walk(self):
-        """遍历队列寻找能够窃取的任务"""
-        if 0 <= self.search_index < self.original_search_index:
-            self.start_work_steal_check(self.state.queues[self.search_index])
-        else:
-            if self.search_index - 1 >= 0:
-                self.search_index -= 1
-                self.work_search_walk()
-        # Select a random thread to steal from then walk through all
-        # self.search_index += 1
-        # self.search_index %= self.config.num_queues
-        #
-        # # If back at original index, completed search
-        # if self.search_index == self.original_search_index:
-        #     self.checked_all = True
-        #
-        # # 使用队列的排列方式来确保分配策略不会导致搜索中出现聚集现象
-        # remote = self.state.queues[self.config.WS_PERMUTATION[self.search_index]]
-        #
-        # # 跳过已经检查过的内容，并且不允许分配给短请求的核心去窃取长请求任务
-        # if remote.id == self.thread.queue.id or remote.id > self.thread.queue.id or \
-        #         (self.config.ws_sibling_first and self.thread.sibling is not None
-        #          and remote.id == self.thread.sibling.queue.id):
-        #     self.work_search_walk()
-        #
-        # # 检查是否能够窃取核心
+        # """遍历队列寻找能够窃取的任务"""
+        # if 0 <= self.search_index < self.original_search_index:
+        #     self.start_work_steal_check(self.state.queues[self.search_index])
         # else:
-        #     self.start_work_steal_check(remote)
+        #     if self.search_index - 1 >= 0:
+        #         self.search_index -= 1
+        #         self.work_search_walk()
+        # Select a random thread to steal from then walk through all
+        # Select a random thread to steal from then walk through all
+        self.search_index += 1
+        self.search_index %= self.config.num_queues
+
+        # If back at original index, completed search
+        if self.search_index == self.original_search_index:
+            self.checked_all = True
+
+        # Use permutation of queues to ensure that allocation policy is not causing clustering in search
+        remote = self.state.queues[self.config.WS_PERMUTATION[self.search_index]]
+
+        # Skip over ones that were already checked
+        if remote.id == self.thread.queue.id or (self.config.ws_sibling_first and self.thread.sibling is not None and
+                                                 remote.id == self.thread.sibling.queue.id):
+            self.work_search_walk()
+
+        # Otherwise, begin to check if you can steal from it
+        else:
+            self.start_work_steal_check(remote)
 
     def start_work_steal_check(self, remote):
-        """Add to service time the amount required to check another queue and set it as the remote candidate."""
+        """将检查另一个队列并将其设置为远程候选者所需的时间量添加到服务时间"""
         self.add_time(self.config.WORK_STEAL_CHECK_TIME)
         self.candidate_remote = remote
 

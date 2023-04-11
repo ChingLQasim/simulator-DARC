@@ -281,7 +281,7 @@ class Thread:
             self.process_task()
 
         # Try own queue first
-        elif self.work_search_state == WorkSearchState.LOCAL_QUEUE_FIRST_CHECK:
+        elif self.work_search_state == WorkSearchState.LOCAL_QUEUE_FIRST_CHECK or len(self.queue.queue) > 0:
 
             if self.config.delay_flagging_enabled:
                 self.delay_flagging()

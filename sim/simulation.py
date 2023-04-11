@@ -541,7 +541,7 @@ class Simulation:
 if __name__ == "__main__":
 
     if "-d" in sys.argv:
-        logging.basicConfig(level=logging.DEBUG, filename="DRAC.log")
+        logging.basicConfig(level=logging.DEBUG, filename="out.log")
         sys.argv.remove("-d")
 
     run_name = SINGLE_THREAD_SIM_NAME_FORMAT.format("DARC",

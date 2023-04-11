@@ -12,7 +12,7 @@ time_format=$(date +"%d_%H-%M-%S")
 echo "当前时间： $time_format"
 start_time=$(date +%s)
 echo "模拟开始"
-python3 simulation.py "$config" -d "$time_format"
+python3 simulation.py "$config" "$time_format" -d
 end_time=$(date +%s)
 
 echo "当前时间: $(date +"%H:%M:%S") 总共用时： $(( end_time - start_time )) 秒, 约 $(( (end_time - start_time) / 60 )) 分"
